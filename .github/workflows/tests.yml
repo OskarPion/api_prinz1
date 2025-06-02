@@ -31,9 +31,13 @@ jobs:
 
       - name: Run FastAPI server
         run: |
+          kill -9 $(lsof -ti:8000) || true
+
           uvicorn main:app --host 0.0.0.0 --port 8000 > server.log 2>&1 &
-          sleep 15  # Ожидаем загрузку моделей
-          curl -s http://localhost:8000/healthcheck || cat server.log
+
+          timeout 30 bash -c 'until curl -s http://localhost:8000/healthcheck; do sleep 1; done' || (cat server.log && exit 1)
+
+          curl -v http://localhost:8000/healthcheck || (cat server.log && exit 1)
 
       - name: Run tests
         run: |

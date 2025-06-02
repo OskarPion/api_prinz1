@@ -65,3 +65,7 @@ def analyze_huggingface(request: TextRequest):
 def read_root():
     message = "Sentiment Analysis API. Используйте /analyze/textblob или /analyze/huggingface"
     return JSONResponse(content={"message": message}, media_type="application/json; charset=utf-8")
+
+@app.get("/healthcheck")
+def healthcheck():
+    return {"status": "ok"}
