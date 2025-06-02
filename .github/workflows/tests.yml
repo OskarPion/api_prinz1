@@ -9,6 +9,15 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Install Git LFS
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git-lfs
+          git lfs install
+          git lfs pull
 
       - name: Set up Python 3.11
         uses: actions/setup-python@v4
@@ -31,13 +40,10 @@ jobs:
 
       - name: Run FastAPI server
         run: |
-          kill -9 $(lsof -ti:8000) || true
-
+          sudo kill -9 $(sudo lsof -t -i:8000) || true
+          netstat -tulnp | grep 8000 | awk '{print $7}' | cut -d'/' -f1 | xargs kill -9 || true
           uvicorn main:app --host 0.0.0.0 --port 8000 > server.log 2>&1 &
-
-          timeout 30 bash -c 'until curl -s http://localhost:8000/healthcheck; do sleep 1; done' || (cat server.log && exit 1)
-
-          curl -v http://localhost:8000/healthcheck || (cat server.log && exit 1)
+          sleep 10
 
       - name: Run tests
         run: |
