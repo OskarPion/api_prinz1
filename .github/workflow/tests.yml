@@ -1,0 +1,40 @@
+name: Sentiment Analysis API Tests
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10  # Модели могут долго загружаться
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install fastapi uvicorn requests pytest textblob transformers torch sentencepiece
+
+      - name: Cache Hugging Face models
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/huggingface
+          key: hf-models
+
+      - name: Pre-download Hugging Face model
+        run: |
+          python -c "from transformers import pipeline; pipeline('sentiment-analysis')"
+
+      - name: Run FastAPI server
+        run: |
+          uvicorn main:app --host 0.0.0.0 --port 8000 > server.log 2>&1 &
+          sleep 15  # Ожидаем загрузку моделей
+          curl -s http://localhost:8000/healthcheck || cat server.log
+
+      - name: Run tests
+        run: |
+          pytest test_api.py -v
